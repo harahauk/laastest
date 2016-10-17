@@ -5,7 +5,12 @@ Lite prosjekt for å få data ut av laas-API
 Python 2.7
 pip install requests
 
-# Nyttige kommandoer å huske
+# Andre ting
+På https://docs.dataporten.no/ finner man link til dashboard, oauth_secret og ID
+finner man på "Prosjektnavn" -> Ouath detaljer. Om man har en token kan man lime
+den inn i cfg-fila, men programmet skal spørre deg om slikt dynamisk snart.
+
+# Nyttige kommandoer å huske før det er innbakt i programmet
 
 Eksempel for å få token
 ```bash
