@@ -99,8 +99,8 @@ baseurl = ConfigSectionMap("LaasTestCfg")['api_portal']
 till_date = "2016.10.16"
 from_date = "2016.10.15"
 #TODO:
-print ("Fra og til dato er enda litt sketchy, må forske på det. La stå blankt om
-usikker")
+print ("Fra og til dato er enda litt sketchy, må forske på det." +
+        "La stå blankt om usikker")
 new_date = raw_input("Fra hvilken dato vil du søke? La stå blankt for " +
         from_date + ": ")
 if new_date != "":
@@ -131,5 +131,5 @@ def search(uri, query):
     return results
 
 print "Partisjonering: " + query_partitions
-print "Query" + query
+print "Query: " + query
 print search(baseurl + query_partitions, query)
