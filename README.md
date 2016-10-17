@@ -15,7 +15,7 @@ den inn i cfg-fila, men programmet skal spørre deg om slikt dynamisk snart.
 Eksempel for å få token
 ```bash
 curl -XPOST https://auth.dataporten.no/oauth/token -u
-'<Ditt token>' --data 'grant_type=client_credentials'
+'<Din client_id>' --data 'grant_type=client_credentials'
 ``` 
 
 (Stygt) Eksempel for å få ut data, queryet finner man i laas ved å inspecte ett gitt søk eller skrive ett eget
