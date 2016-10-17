@@ -2,7 +2,7 @@
 Lite prosjekt for å få data ut av laas-API
 
 # Requirements
-Python 2.7
+Python 2.7,
 pip install requests
 
 # Andre ting
