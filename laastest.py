@@ -132,4 +132,5 @@ def search(uri, query):
 
 print "Partisjonering: " + query_partitions
 print "Query: " + query
-print search(baseurl + query_partitions, query)
+print json.dumps(search(baseurl + query_partitions, query),
+        indent=4, sort_keys=True)
