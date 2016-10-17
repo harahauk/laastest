@@ -96,12 +96,32 @@ headers = {"Authorization":"Bearer " +
 baseurl = ConfigSectionMap("LaasTestCfg")['api_portal']
 
 # Eksempel på søk
-query_partitions = "logs-ntnu-apptest-2016.10.16,logs-ntnu-apptest-2016.10.15/_search?pretty"
-def search(uri):
+till_date = "2016.10.16"
+from_date = "2016.10.15"
+#TODO:
+print ("Fra og til dato er enda litt sketchy, må forske på det. La stå blankt om
+usikker")
+new_date = raw_input("Fra hvilken dato vil du søke? La stå blankt for " +
+        from_date + ": ")
+if new_date != "":
+    from_date = new_date
+new_date = raw_input("Til hvilken dato vil du søke? La stå blankt for " +
+        till_date + ": ")
+if new_date != "":
+    till_date = new_date
+query_partitions = ("logs-ntnu-apptest-" + till_date +
+    ",logs-ntnu-apptest-" + from_date + "/_search?pretty")
+query = "@timestamp:(\"2016-10-15T07:31:01.438Z\")"
+new_query = raw_input("Hvilket query skal vi sortere på? La stå blankt for " +
+        query + ":")
+if new_query != "":
+    query = new_query
+
+def search(uri, query):
     query = json.dumps({
         "query": {
             "query_string": {
-                "query": "@timestamp:(\"2016-10-15T07:31:01.438Z\")"
+                "query": query
             }
         }
     })
@@ -110,4 +130,6 @@ def search(uri):
     results = json.loads(response.text)
     return results
 
-print search(baseurl + query_partitions)
+print "Partisjonering: " + query_partitions
+print "Query" + query
+print search(baseurl + query_partitions, query)
