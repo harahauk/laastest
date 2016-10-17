@@ -1,5 +1,11 @@
 # LaasTest
 Lite prosjekt for å få data ut av laas-API
+Ment som eksempel til å automatisere og hente ut ting som ligger i https://laas.uninett.no/
+
+# Eksempel som er implementert:
+* Få adgangstoken, lagre disse om man ikke trenger ett nytt, støtter lagring av
+  secret også om man er litt texas.
+* Søk med query til laas, dette trenger litt mer jobb, men er ett proof of concept, kanskje lage ett GUI
 
 # Requirements
 Python 2.7,
