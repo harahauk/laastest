@@ -1,8 +1,6 @@
-#!/usr/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import ConfigParser
-import os
-import urllib2
 import json
 import requests
 
@@ -10,6 +8,7 @@ import requests
 Config = ConfigParser.ConfigParser()
 Config.read('config.cfg')
 
+# Hjelpefunksjon for å hente ut config
 def ConfigSectionMap(section):
     dict1 = {}
     options = Config.options(section)
@@ -24,8 +23,7 @@ def ConfigSectionMap(section):
     return dict1
 
 def get_bearer_token(app_id, app_secret):
-    print "App ID: " + app_id
-    print "App secret: " + app_secret
+    # OAUTH
     headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
     payload = { u'grant_type': u'client_credentials'}
     result = requests.post(ConfigSectionMap("LaasTestCfg")['auth_portal'],
@@ -33,14 +31,20 @@ def get_bearer_token(app_id, app_secret):
             data = payload,
             auth=(app_id, app_secret))
     try:
-        token = json.loads(result.text)['access_token']
-        return token
+        token = json.loads(result.text)
+        return (token['access_token'], token['expires_in'])
     except:
-        print "Noe gikk galt:"
+        print "Noe gikk galt med OAUTH, feilmelding følger:"
         print result.text
         return None
 
+def save_config(config):
+    cfgfile = open('config.cfg', 'w')
+    config.write(cfgfile)
+    cfgfile.close()
+
 def auth():
+    save_secret = False
     # sørger for at credentials er satt og gyldige
     if ConfigSectionMap("LaasTestCfg")['oauth_bearer_token']:
             #TODO check if expired
@@ -49,27 +53,26 @@ def auth():
         if not ConfigSectionMap("LaasTestCfg")['oauth_client_id']:
             Config.set('LaasTestCfg', 'oauth_client_id',
                     raw_input("Hva er din klient ID? (lagres til neste gang): "))
-            cfgfile = open('config.cfg', 'w')
-            Config.write(cfgfile)
-            cfgfile.close()
+            save_config(Config)
         if not ConfigSectionMap("LaasTestCfg")['oauth_client_secret']:
             Config.set('LaasTestCfg', 'oauth_client_secret',
                     raw_input("Hva er din klient secret? (lagres ikke): "))
             if (raw_input("Vil du lagre secret i klartekst til neste gang? Skriv 'ja': ") == "ja"):
-                cfgfile = open('config.cfg', 'w')
-                Config.write(cfgfile)
-                cfgfile.close()
+                save_secret = True
         token = get_bearer_token(ConfigSectionMap("LaasTestCfg")['oauth_client_id'],
                     ConfigSectionMap("LaasTestCfg")['oauth_client_secret'])
-        Config.set('LaasTestCfg', 'oauth_bearer_token', token)
-        print "Fikk bearer token " + token
+        if not save_config:
+            Config.set('LaasTestCfg', 'oauth_client_secret', "")
+        Config.set('LaasTestCfg', 'oauth_bearer_token', token[0])
+        Config.set('LaasTestCfg', 'oauth_bearer_token_valid', token[1])
+        save_config(Config)
+        # print "Fikk bearer token " + token
 
 auth()
 
 headers = {"Authorization":"Bearer " +
         ConfigSectionMap("LaasTestCfg")['oauth_bearer_token'],
         'User-Agent': 'API Browser'}
-#TODO: Auth
 #TODO: Hent nytt token om det andre er utgått
 #Config.set('LaasTestCfg', 'auth_portal', "ingenting")
 
