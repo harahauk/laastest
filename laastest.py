@@ -3,6 +3,8 @@
 import ConfigParser
 import json
 import requests
+import time
+import datetime
 
 # Dynamisk konfigfil for mellomlagring av variabler
 Config = ConfigParser.ConfigParser()
@@ -18,7 +20,7 @@ def ConfigSectionMap(section):
             if dict1[option] == -1:
                 DebugPrint("skip: %s" % option)
         except:
-            print("exception on %s!" % option)
+            #print(" DEBUG: exception on %s!" % option)
             dict1[option] = None
     return dict1
 
@@ -43,11 +45,29 @@ def save_config(config):
     config.write(cfgfile)
     cfgfile.close()
 
+def set_token_validity(config, seconds):
+        now = datetime.datetime.now()
+        valid_seconds = time.mktime(now.timetuple()) + int(seconds)
+        valid_time = datetime.datetime.fromtimestamp(valid_seconds)
+        Config.set('LaasTestCfg', 'oauth_bearer_token_valid',
+                valid_time.strftime('%Y-%m-%d %H:%M:%S'))
+        return
+
+def is_token_valid(config):
+    valid_till = datetime.datetime.strptime(ConfigSectionMap("LaasTestCfg")['oauth_bearer_token_valid'],
+            '%Y-%m-%d %H:%M:%S')
+    now = datetime.datetime.now()
+    if now > valid_till:
+        return False
+    print "Debug: Token is still valid"
+    return True
+
 def auth():
-    save_secret = False
     # sørger for at credentials er satt og gyldige
-    if ConfigSectionMap("LaasTestCfg")['oauth_bearer_token']:
-            #TODO check if expired
+    save_secret = False
+    if (ConfigSectionMap("LaasTestCfg")['oauth_bearer_token'] and
+        is_token_valid(Config)):
+            # Nothing to do, we have what we need
             return
     else:
         if not ConfigSectionMap("LaasTestCfg")['oauth_client_id']:
@@ -61,10 +81,10 @@ def auth():
                 save_secret = True
         token = get_bearer_token(ConfigSectionMap("LaasTestCfg")['oauth_client_id'],
                     ConfigSectionMap("LaasTestCfg")['oauth_client_secret'])
-        if not save_config:
+        if not save_secret:
             Config.set('LaasTestCfg', 'oauth_client_secret', "")
         Config.set('LaasTestCfg', 'oauth_bearer_token', token[0])
-        Config.set('LaasTestCfg', 'oauth_bearer_token_valid', token[1])
+        set_token_validity(Config, token[1])
         save_config(Config)
         # print "Fikk bearer token " + token
 
@@ -73,9 +93,6 @@ auth()
 headers = {"Authorization":"Bearer " +
         ConfigSectionMap("LaasTestCfg")['oauth_bearer_token'],
         'User-Agent': 'API Browser'}
-#TODO: Hent nytt token om det andre er utgått
-#Config.set('LaasTestCfg', 'auth_portal', "ingenting")
-
 baseurl = ConfigSectionMap("LaasTestCfg")['api_portal']
 
 # Eksempel på søk
@@ -94,4 +111,3 @@ def search(uri):
     return results
 
 print search(baseurl + query_partitions)
-
