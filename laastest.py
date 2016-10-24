@@ -5,6 +5,7 @@ import json
 import requests
 import time
 import datetime
+from elasticsearch import Elasticsearch
 
 # Dynamisk konfigfil for mellomlagring av variabler
 Config = ConfigParser.ConfigParser()
@@ -88,49 +89,133 @@ def auth():
         save_config(Config)
         # print "Fikk bearer token " + token
 
-auth()
+def get_elastic_instance():
+    headers = {"Authorization":"Bearer " +
+            ConfigSectionMap("LaasTestCfg")['oauth_bearer_token'],
+            'User-Agent': 'API Browser'}
+    baseurl = ConfigSectionMap("LaasTestCfg")['api_portal']
 
-headers = {"Authorization":"Bearer " +
-        ConfigSectionMap("LaasTestCfg")['oauth_bearer_token'],
-        'User-Agent': 'API Browser'}
-baseurl = ConfigSectionMap("LaasTestCfg")['api_portal']
+    es = Elasticsearch([baseurl])
+    es.transport.connection_pool.connection.headers.update(headers)
+    return es
 
-# Eksempel på søk
-till_date = "2016.10.16"
-from_date = "2016.10.15"
-#TODO:
-print ("Fra og til dato er enda litt sketchy, må forske på det." +
-        "La stå blankt om usikker")
-new_date = raw_input("Fra hvilken dato vil du søke? La stå blankt for " +
-        from_date + ": ")
-if new_date != "":
-    from_date = new_date
-new_date = raw_input("Til hvilken dato vil du søke? La stå blankt for " +
-        till_date + ": ")
-if new_date != "":
-    till_date = new_date
-query_partitions = ("logs-ntnu-apptest-" + till_date +
-    ",logs-ntnu-apptest-" + from_date + "/_search?pretty")
-query = "@timestamp:(\"2016-10-15T07:31:01.438Z\")"
-new_query = raw_input("Hvilket query skal vi sortere på? La stå blankt for " +
-        query + ":")
-if new_query != "":
-    query = new_query
+def main():
+    auth()
+    es = get_elastic_instance()
 
-def search(uri, query):
-    query = json.dumps({
-        "query": {
-            "query_string": {
-                "query": query
-            }
+#es.index(index="my-index", doc_type="test-type", id=42, body={"any": "data",
+#    "timestamp": datetime.now()})
+#print es.info()
+
+    #timestamp = "2016-10-20 20:59:40"
+    timestamp = raw_input("Gi ett timestamp (2016-10-20 20:59:40): ")
+    dateobj = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+    to_milliseconds = (float(dateobj.strftime("%s")) * 1000)
+    # Grace second
+    to_milliseconds = to_milliseconds + 1000
+    yesterday = to_milliseconds - 1000*60*60*24
+    index_stem = "logs-ntnu-log-vpn-"
+    index_first = (index_stem + str(dateobj.year) + "." +
+            str(dateobj.month) + "." +
+            str(dateobj.day))
+    yesterday_obj = datetime.datetime.fromtimestamp(yesterday / 1e3)
+    index_second = (index_stem + str(yesterday_obj.year) + "." +
+            str(yesterday_obj.month) + "." +
+            str(yesterday_obj.day))
+    full_index = index_first + "," + index_second
+    print full_index
+    #ip = "129.241.220.133"
+    ip = raw_input("Gi en IP (129.241.220.133): ")
+
+    body = {
+            "sort": [
+                { "@timestamp": { "order": "desc" } }
+                ],
+            'query': {
+                "match": {
+                    'message': ".*" + ip + ".*"
+                    }
+            },
+            "filter": {
+                "bool": {
+                    "must": [
+                        {
+                            "range": {
+                                "@timestamp": {
+                                    "from": yesterday,
+                                    #"to": 1477001273121
+                                    "to": to_milliseconds
+
+                                }
+                            }
+                        }
+                        ]
+                        }
+                }
         }
-    })
+    #return
+    #print body
+    try:
+        res = es.search(index=full_index,
+                #terminate_after=100,
+                body=body,
+                #sort={ "_timestamp": "desc" })
+                sort={ "_score": "desc" })
+        #print res
+        for item in res['hits']['hits']:
+            print (item['_source']['asa_user'] + " " +
+                item['_source']['syslog_timestamp'] + " " +
+                str(item['_score']))
+                    #item['_source']['_message'])
+        #help(res)
+        #for item in res:
+        #    help(item)
+        #help(res)
+        #for item in res:
+        #    if item["score"] >= 1:
+        #        print item
+    except Exception, e:
+        print e
 
-    response = requests.get(uri, headers=headers, data=query)
-    results = json.loads(response.text)
-    return results
+# # Eksempel på søk
+# till_date = "2016.10.16"
+# from_date = "2016.10.15"
+# #TODO:
+# print ("Fra og til dato er enda litt sketchy, må forske på det." +
+#         "La stå blankt om usikker")
+# new_date = raw_input("Fra hvilken dato vil du søke? La stå blankt for " +
+#         from_date + ": ")
+# if new_date != "":
+#     from_date = new_date
+# new_date = raw_input("Til hvilken dato vil du søke? La stå blankt for " +
+#         till_date + ": ")
+# if new_date != "":
+#     till_date = new_date
+# query_partitions = ("logs-ntnu-log-vpn-" + till_date +
+#     ",logs-ntnu-log-vpn-" + from_date + "/_search?pretty")
+# query = "@timestamp:(\"2016-10-15T07:31:01.438Z\")"
+# new_query = raw_input("Hvilket query skal vi sortere på? La stå blankt for " +
+#         query + ":")
+# if new_query != "":
+#     query = new_query
+# 
+# def search(uri, query):
+#     query = json.dumps({
+#         "query": {
+#             "query_string": {
+#                 "query": query
+#             }
+#         }
+#     })
+# 
+#     response = requests.get(uri, headers=headers, data=query)
+#     results = json.loads(response.text)
+#     return results
+# 
+# print "Partisjonering: " + query_partitions
+# print "Query: " + query
+# print json.dumps(search(baseurl + query_partitions, query),
+#         indent=4, sort_keys=True)
+if __name__ == "__main__":
+    main()
 
-print "Partisjonering: " + query_partitions
-print "Query: " + query
-print json.dumps(search(baseurl + query_partitions, query),
-        indent=4, sort_keys=True)
