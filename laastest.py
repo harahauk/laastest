@@ -99,22 +99,18 @@ def get_elastic_instance():
     es.transport.connection_pool.connection.headers.update(headers)
     return es
 
-def main():
-    auth()
-    es = get_elastic_instance()
-
-#es.index(index="my-index", doc_type="test-type", id=42, body={"any": "data",
-#    "timestamp": datetime.now()})
-#print es.info()
-
-    #timestamp = "2016-10-20 20:59:40"
-    timestamp = raw_input("Gi ett timestamp (2016-10-20 20:59:40): ")
-    dateobj = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+def search_by_timestamp(index, ip, dateobj):
+    """ Search for the document closest to a upper timestamp
+    @param index - The laas index
+    ip - A string containing IP
+    dateobj - a datetime.datetime object with desired timestamp
+    """
     to_milliseconds = (float(dateobj.strftime("%s")) * 1000)
     # Grace second
     to_milliseconds = to_milliseconds + 1000
+
     yesterday = to_milliseconds - 1000*60*60*24
-    index_stem = "logs-ntnu-log-vpn-"
+    index_stem = index + "-"
     index_first = (index_stem + str(dateobj.year) + "." +
             str(dateobj.month) + "." +
             str(dateobj.day))
@@ -123,9 +119,6 @@ def main():
             str(yesterday_obj.month) + "." +
             str(yesterday_obj.day))
     full_index = index_first + "," + index_second
-    print full_index
-    #ip = "129.241.220.133"
-    ip = raw_input("Gi en IP (129.241.220.133): ")
 
     body = {
             "sort": [
@@ -153,30 +146,41 @@ def main():
                         }
                 }
         }
-    #return
-    #print body
     try:
+        es = get_elastic_instance()
         res = es.search(index=full_index,
                 #terminate_after=100,
-                body=body,
+                body=body)#,
                 #sort={ "_timestamp": "desc" })
-                sort={ "_score": "desc" })
+                #sort={ "_score": "desc" })
         #print res
+        debuglist = []
         for item in res['hits']['hits']:
-            print (item['_source']['asa_user'] + " " +
-                item['_source']['syslog_timestamp'] + " " +
-                str(item['_score']))
-                    #item['_source']['_message'])
-        #help(res)
-        #for item in res:
-        #    help(item)
-        #help(res)
-        #for item in res:
-        #    if item["score"] >= 1:
-        #        print item
+            debuglist.append(item['_source']['asa_user'] + " " +
+                item['_source']['syslog_timestamp'])
+        user =  res['hits']['hits'][0]['_source']['asa_user']
+        #print debuglist
+        return (user, debuglist)
+
     except Exception, e:
         print e
+        return ("Something went wrong", str(e))
 
+
+def main():
+    auth()
+
+#es.index(index="my-index", doc_type="test-type", id=42, body={"any": "data",
+#    "timestamp": datetime.now()})
+#print es.info()
+
+    #timestamp = "2016-10-20 20:59:40"
+    timestamp = raw_input("Gi ett timestamp (2016-10-20 20:59:40): ")
+    dateobj = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+    ip = raw_input("Gi en IP (129.241.220.133): ")
+    user = search_by_timestamp("logs-ntnu-log-vpn", ip, dateobj)
+    print "Result: " + user[0]
+    print "Loglines: " + str(user[1])
 # # Eksempel på søk
 # till_date = "2016.10.16"
 # from_date = "2016.10.15"
