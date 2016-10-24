@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import ConfigParser
 import json
-import requests
 import time
 import datetime
+import ConfigParser
+# Nedds to be installed
+import requests
 from elasticsearch import Elasticsearch
 
 # Dynamisk konfigfil for mellomlagring av variabler
@@ -52,7 +53,6 @@ def set_token_validity(config, seconds):
         valid_time = datetime.datetime.fromtimestamp(valid_seconds)
         Config.set('LaasTestCfg', 'oauth_bearer_token_valid',
                 valid_time.strftime('%Y-%m-%d %H:%M:%S'))
-        return
 
 def is_token_valid(config):
     valid_till = datetime.datetime.strptime(ConfigSectionMap("LaasTestCfg")['oauth_bearer_token_valid'],
@@ -142,9 +142,9 @@ def search_by_timestamp(index, ip, dateobj):
                                 }
                             }
                         }
-                        ]
+                            ]
                         }
-                }
+                    }
         }
     try:
         es = get_elastic_instance()
@@ -169,57 +169,13 @@ def search_by_timestamp(index, ip, dateobj):
 
 def main():
     auth()
-
-#es.index(index="my-index", doc_type="test-type", id=42, body={"any": "data",
-#    "timestamp": datetime.now()})
-#print es.info()
-
-    #timestamp = "2016-10-20 20:59:40"
     timestamp = raw_input("Gi ett timestamp (2016-10-20 20:59:40): ")
     dateobj = datetime.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
     ip = raw_input("Gi en IP (129.241.220.133): ")
     user = search_by_timestamp("logs-ntnu-log-vpn", ip, dateobj)
     print "Result: " + user[0]
     print "Loglines: " + str(user[1])
-# # Eksempel på søk
-# till_date = "2016.10.16"
-# from_date = "2016.10.15"
-# #TODO:
-# print ("Fra og til dato er enda litt sketchy, må forske på det." +
-#         "La stå blankt om usikker")
-# new_date = raw_input("Fra hvilken dato vil du søke? La stå blankt for " +
-#         from_date + ": ")
-# if new_date != "":
-#     from_date = new_date
-# new_date = raw_input("Til hvilken dato vil du søke? La stå blankt for " +
-#         till_date + ": ")
-# if new_date != "":
-#     till_date = new_date
-# query_partitions = ("logs-ntnu-log-vpn-" + till_date +
-#     ",logs-ntnu-log-vpn-" + from_date + "/_search?pretty")
-# query = "@timestamp:(\"2016-10-15T07:31:01.438Z\")"
-# new_query = raw_input("Hvilket query skal vi sortere på? La stå blankt for " +
-#         query + ":")
-# if new_query != "":
-#     query = new_query
-# 
-# def search(uri, query):
-#     query = json.dumps({
-#         "query": {
-#             "query_string": {
-#                 "query": query
-#             }
-#         }
-#     })
-# 
-#     response = requests.get(uri, headers=headers, data=query)
-#     results = json.loads(response.text)
-#     return results
-# 
-# print "Partisjonering: " + query_partitions
-# print "Query: " + query
-# print json.dumps(search(baseurl + query_partitions, query),
-#         indent=4, sort_keys=True)
+
 if __name__ == "__main__":
     main()
 
